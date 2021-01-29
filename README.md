@@ -1,2 +1,2 @@
 # covid_kanagawa_leaflet2
- 
+新型コロナウイルス感染症の可視化アプリケーションです。
