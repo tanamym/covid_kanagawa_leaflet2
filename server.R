@@ -175,20 +175,7 @@ shinyServer(function(input, output, session) {
 
     jinko<-read.csv("jinko.csv")
     jinko<-data.frame(jinko)
-    #install.packages("rgdal")
-    library(rgdal)
-    layers <- ogrListLayers("N03-190101_14_GML/N03-19_14_190101.shp")
-    # windowsの場合はencodingを指定しないと文字化けする
-    Encoding(layers[1]) <- "UTF-8"
-    shp <- readOGR("N03-190101_14_GML/N03-19_14_190101.shp", layer=layers[1],
-                   stringsAsFactors = FALSE, encoding = "UTF-8")
-    #神奈川県に絞る
-    #shp.sub <- subset(shp, shp@data$N03_007 %in% d$area_code)
-    shp@data<-
-      mutate(shp@data,N03_003=ifelse(is.na(N03_003),"",N03_003))%>%
-      mutate(N03_004=ifelse(N03_003=="横浜市","横浜市",
-                                     ifelse(N03_003=="相模原市","相模原市",N03_004)))%>%
-      mutate(N03_004=ifelse(N03_003=="川崎市",paste0(N03_003,N03_004),N03_004))
+
     output$covid_map <- renderLeaflet({
         #ここ書き換える
         switch (input$button,
@@ -198,40 +185,22 @@ shinyServer(function(input, output, session) {
                     filter(確定日>=date,確定日<=lubridate::ymd(input$x))%>%
                     group_by(居住市区町村及び管内,X,Y)%>%
                     summarise(count=n())%>%
-                    filter(X>0,Y>0)%>%
-                    mutate(N03_004=居住市区町村及び管内)
-                # data7.2<-
-                #   left_join(shp@data,data7,by=c("N03_004"="居住市区町村及び管内"))
-                data7.2<-
-                  sp::merge(shp, data7.1,
-                            by="N03_004", all=F,duplicateGeoms = TRUE)
-                #色設定
-                pal <- colorNumeric(palette=c("white","red"),domain=c(0,input$color), reverse=F)
+                    filter(X>0,Y>0)
+
                 #leafletの可視化
-                # leaflet(data7.1) %>% addTiles() %>%
-                #     addProviderTiles(providers$CartoDB.Positron) %>%
-                #     #setView(lng=139.4725,lat=35.4478,zoom=10)%>%
-                #     fitBounds(lng1=139.124343, lat1=35.117843, lng2=139.652899, lat2=35.665052)%>%
-                #     addCircleMarkers(~X, ~Y, stroke=FALSE,
-                #                      radius =sqrt(data7.1$count)*10,
-                #                      label = ~htmlEscape(居住市区町村及び管内),
-                #                      labelOptions = labelOptions(direction = 'auto',noHide = T, textOnly = TRUE,textsize = "10px"))%>%
-                #     addCircleMarkers(~X, ~Y, stroke=FALSE,
-                #                      radius =sqrt(data7.1$count)*10,
-                #                      label = ~htmlEscape(count),
-                #                      labelOptions = labelOptions(direction = 'bottom',noHide = T, textOnly = TRUE,textsize = "10px"),
-                #     )%>%
-                #   addControl(tags$div(HTML(paste(date,lubridate::ymd(input$x),sep = "~")))  , position = "topright") 
-                data7.2%>%
-                  leaflet() %>%
-                  fitBounds(lng1=139.124343, lat1=35.117843, lng2=139.652899, lat2=35.665052)%>% 
-                  addProviderTiles(providers$CartoDB.Positron) %>% 
-                  addPolygons(fillOpacity = 1,
-                              weight=1,
-                              color = "#666",
-                              fillColor = ~pal(sqrt(data7.2@data$count)),
-                              label = paste0(data7.2@data$N03_004,data7.2@data$count))
-                },
+                leaflet(data7.1) %>% addTiles() %>%
+                    addProviderTiles(providers$CartoDB.Positron) %>%
+                    #setView(lng=139.4725,lat=35.4478,zoom=10)%>%
+                    fitBounds(lng1=139.124343, lat1=35.117843, lng2=139.652899, lat2=35.665052)%>%
+                    addCircleMarkers(~X, ~Y, stroke=FALSE,
+                                     radius =sqrt(data7.1$count)*input$en,
+                                     label = ~htmlEscape(居住市区町村及び管内),
+                                     labelOptions = labelOptions(direction = 'auto',noHide = T, textOnly = TRUE,textsize = "10px"))%>%
+                    addCircleMarkers(~X, ~Y, stroke=FALSE,
+                                     radius =sqrt(data7.1$count)*input$en,
+                                     label = ~htmlEscape(count),
+                                     labelOptions = labelOptions(direction = 'bottom',noHide = T, textOnly = TRUE,textsize = "10px"),
+                    )%>%addControl(tags$div(HTML(paste(date,lubridate::ymd(input$x),sep = "~")))  , position = "topright") },
                 leaflet2={
                     date<-lubridate::ymd(input$x)-input$y
                     #集計
@@ -242,48 +211,20 @@ shinyServer(function(input, output, session) {
                         filter(X>0,Y>0)
                     jinko2<-left_join(data7.1,jinko,by=c("居住市区町村及び管内"="市区町村"))
                     jinko3<-jinko2%>%
-                        mutate(count_j=count/人口*100000)%>%
-                      mutate(N03_004=居住市区町村及び管内)
-                    
-                    data7.2<-
-                      sp::merge(shp, jinko3,
-                                by="N03_004", all=F,duplicateGeoms = TRUE)
-                    #色設定
-                    pal <- colorNumeric(palette=c("white","red"),domain=c(0,input$color), reverse=F)
-                    
-                    data7.2%>%
-                      leaflet() %>%
-                      fitBounds(lng1=139.124343, lat1=35.117843, lng2=139.652899, lat2=35.665052)%>% 
-                      addProviderTiles(providers$CartoDB.Positron) %>% 
-                      addPolygons(fillOpacity = 1,
-                                  weight=1,
-                                  color = "#666",
-                                  #labelOptions = labelOptions(noHide = T, textOnly = TRUE),
-                                  fillColor = ~pal(data7.2@data$count_j),
-                                  label = paste0(data7.2@data$N03_004,round(data7.2@data$count_j,2))
-                                  )%>%
-                      # addCircleMarkers(~X, ~Y, stroke=FALSE,
-                      #                  radius =1,
-                      #                  label = ~htmlEscape(N03_004),
-                      #                  labelOptions = labelOptions(direction = 'auto',noHide = T, textOnly = TRUE,textsize = "10px"))%>%
-                      # addCircleMarkers(~X, ~Y, stroke=FALSE,
-                      #                  radius =1,
-                      #                  label = ~htmlEscape(round(count_j,digits = 4)),
-                      #                  labelOptions = labelOptions(direction = 'bottom',noHide = T, textOnly = TRUE,textsize = "10px"))%>%
-                      addControl(tags$div(HTML(paste(date,lubridate::ymd(input$x),sep = "~")))  , position = "topright")
-                    # leaflet(jinko3) %>% addTiles() %>%
-                    #     addProviderTiles(providers$CartoDB.Positron) %>%
-                    #     #setView(lng=139.4825,lat=35.4478,zoom=10)%>%
-                    #     fitBounds(lng1=139.124343, lat1=35.117843, lng2=139.652899, lat2=35.665052)%>%
-                    #     addCircleMarkers(~X, ~Y, stroke=FALSE,
-                    #                      radius =sqrt(jinko3$count_j)*10,
-                    #                      label = ~htmlEscape(居住市区町村及び管内),
-                    #                      labelOptions = labelOptions(direction = 'auto',noHide = T, textOnly = TRUE,textsize = "10px"))%>%
-                    #     addCircleMarkers(~X, ~Y, stroke=FALSE,
-                    #                      radius =sqrt(jinko3$count_j)*10,
-                    #                      label = ~htmlEscape(round(count_j,digits = 4)),
-                    #                      labelOptions = labelOptions(direction = 'bottom',noHide = T, textOnly = TRUE,textsize = "10px")
-                    #     )%>%addControl(tags$div(HTML(paste(date,lubridate::ymd(input$x),sep = "~")))  , position = "topright")
+                        mutate(count_j=count/人口*100000)
+                    leaflet(jinko3) %>% addTiles() %>%
+                        addProviderTiles(providers$CartoDB.Positron) %>%
+                        #setView(lng=139.4825,lat=35.4478,zoom=10)%>%
+                        fitBounds(lng1=139.124343, lat1=35.117843, lng2=139.652899, lat2=35.665052)%>%
+                        addCircleMarkers(~X, ~Y, stroke=FALSE,
+                                         radius =sqrt(jinko3$count_j)*input$en,
+                                         label = ~htmlEscape(居住市区町村及び管内),
+                                         labelOptions = labelOptions(direction = 'auto',noHide = T, textOnly = TRUE,textsize = "10px"))%>%
+                        addCircleMarkers(~X, ~Y, stroke=FALSE,
+                                         radius =sqrt(jinko3$count_j)*input$en,
+                                         label = ~htmlEscape(round(count_j,digits = 4)),
+                                         labelOptions = labelOptions(direction = 'bottom',noHide = T, textOnly = TRUE,textsize = "10px")
+                        )%>%addControl(tags$div(HTML(paste(date,lubridate::ymd(input$x),sep = "~")))  , position = "topright")
                     }
                 )
     }
