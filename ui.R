@@ -51,7 +51,7 @@ if (!require(webshot)) {
     install.packages("webshot")
  
 }
-#webshot :: install_phantomjs()
+webshot :: install_phantomjs()
 
 #tmp.enc <- options()$encoding #標準コーディングを記録（native.encであることが多いです）
 #options(encoding = "UTF-8") #エンコーディングをUTF-8に変更
@@ -70,15 +70,16 @@ shinyUI(fluidPage(
                      #dateInput("x",label = h5("累積日数の最後の日付入力"),max=date[1,1],value = date[1,1]),#Sys.Date()),
                      numericInput("y",label = h5("終了日までの累積日数を入力"),value="14"),
                      h6("日付を6/30、日数を14にすると、6/16~6/30の累積感染者マップが出力されます。"),
+                     h5("横浜市は市単位での表示になっています。（区単位ではありません。）"),
                      radioButtons("button",label = "グラフの種類を選択してください",
                                   c("累積感染者数"="leaflet1",
                                     "10万人当たりの累積感染者数"="leaflet2")
                                   ),
-                     sliderInput("en",label = "円のサイズの指定",
-                                 min = 1,
-                                 max = 10,
-                                 value = 5)
-                    
+                     sliderInput("color",
+                                 label = "色の調整",
+                                 min = 10,
+                                 max = 500,
+                                 value = 200,)
                      
                      ),
         
