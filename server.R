@@ -210,7 +210,7 @@ shinyServer(function(input, output, session) {
                             by="N03_004", all=F,duplicateGeoms = TRUE)
                 #色設定
                 pal <- colorNumeric(palette=c("white","red"),domain=c(0,input$color), reverse=F)
-                
+                data7.2%>%
                   leaflet() %>%
                   fitBounds(lng1=139.124343, lat1=35.117843, lng2=139.652899, lat2=35.665052)%>% 
                   addProviderTiles(providers$CartoDB.Positron) %>% 
