@@ -79,9 +79,9 @@ shinyServer(function(input, output, session) {
       mutate(年代 = str_replace(年代,"代","")) %>%
       mutate(居住市区町村 = str_replace(居住市区町村,"神奈川県",""))
     kanagawa<-read.csv("kanagawa2.csv") %>%
-      select(-X,-備考)%>%
-      filter(!居住市区町村%in%c("横浜市","横須賀市","相模原市","川崎市",
-                         "藤沢市"))
+      select(-X,-備考)#%>%
+      # filter(!居住市区町村%in%c("横浜市","横須賀市","相模原市","川崎市",
+      #                    "藤沢市"))
 
     kanagawa2<-rbind(kanagawa,patient) %>%
       mutate(受診都道府県 ="神奈川県",
@@ -90,7 +90,13 @@ shinyServer(function(input, output, session) {
     
     xy<-read.csv("xy.csv") %>%
       select(-X.1)
-    
+    chigasaki<-
+      read.csv("chigasaki.csv")%>%
+      mutate(受診都道府県 ="神奈川県",
+                   居住都道府県="神奈川県"
+      )%>%
+      mutate(確定日=as.Date(確定日))%>%
+      left_join(xy,by="居住市区町村")
     kanagawa2<-
       left_join(kanagawa2,xy,by="居住市区町村") %>%
       mutate(確定日=as.Date(確定日))
@@ -99,7 +105,7 @@ shinyServer(function(input, output, session) {
       select(-X,番号,番号2)%>%
       mutate(確定日=as.Date(確定日))
     
-    data<-bind_rows(data,kanagawa2,kawasaki)
+    data<-bind_rows(data,kanagawa2,kawasaki,chigasaki)
     date<-
       kawasaki%>%
       data.frame()%>%
