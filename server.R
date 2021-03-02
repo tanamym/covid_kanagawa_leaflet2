@@ -216,6 +216,11 @@ shinyServer(function(input, output, session) {
                             by="N03_004", all=F,duplicateGeoms = TRUE)
                 #色設定
                 pal <- colorNumeric(palette=c("white","red"),domain=c(0,input$color), reverse=F)
+                pal2<-
+                  data7.2@data%>%
+                  mutate(col=pal(count),
+                         col2=ifelse(count>input$color,"red",col),
+                         flag=ifelse(count>input$color,paste0(input$color,"~"),paste0(count%/%10*10,"~")))
                 data7.2%>%
                   leaflet() %>%
                   fitBounds(lng1=139.124343, lat1=35.117843, lng2=139.652899, lat2=35.665052)%>% 
@@ -223,8 +228,13 @@ shinyServer(function(input, output, session) {
                   addPolygons(fillOpacity = 1,
                               weight=1,
                               color = "#666",
-                              fillColor = ~pal(sqrt(data7.2@data$count)),
-                              label = paste0(data7.2@data$N03_004,data7.2@data$count))
+                              fillColor = ~pal2$col2,
+                              label = paste0(data7.2@data$N03_004,data7.2@data$count))%>%
+                  addLegend(data=pal2%>%distinct(flag,.keep_all = T)%>%arrange(count)
+                            ,position="bottomright",color=~col2,labels=~flag,title = "累積感染者数",opacity = 1,
+                            #labFormat = labelFormat(transform = function(x)x*x)
+                            )%>%
+                  addControl(tags$div(HTML(paste(date,lubridate::ymd(input$x),sep = "~")))  , position = "topright")
                 },
                 leaflet2={
                     date<-lubridate::ymd(input$x)-input$y
@@ -244,7 +254,11 @@ shinyServer(function(input, output, session) {
                                 by="N03_004", all=F,duplicateGeoms = TRUE)
                     #色設定
                     pal <- colorNumeric(palette=c("white","red"),domain=c(0,input$color), reverse=F)
-                    
+                    pal2<-
+                      data7.2@data%>%
+                      mutate(col=pal(count_j),
+                             col2=ifelse(count_j>input$color,"red",col),
+                             flag=ifelse(count_j>input$color,paste0(input$color,"~"),paste0(count_j%/%10*10,"~")))
                     data7.2%>%
                       leaflet() %>%
                       fitBounds(lng1=139.124343, lat1=35.117843, lng2=139.652899, lat2=35.665052)%>% 
@@ -253,31 +267,15 @@ shinyServer(function(input, output, session) {
                                   weight=1,
                                   color = "#666",
                                   #labelOptions = labelOptions(noHide = T, textOnly = TRUE),
-                                  fillColor = ~pal(data7.2@data$count_j),
+                                  fillColor = ~pal2$col2,
                                   label = paste0(data7.2@data$N03_004,round(data7.2@data$count_j,2))
                                   )%>%
-                      # addCircleMarkers(~X, ~Y, stroke=FALSE,
-                      #                  radius =1,
-                      #                  label = ~htmlEscape(N03_004),
-                      #                  labelOptions = labelOptions(direction = 'auto',noHide = T, textOnly = TRUE,textsize = "10px"))%>%
-                      # addCircleMarkers(~X, ~Y, stroke=FALSE,
-                      #                  radius =1,
-                      #                  label = ~htmlEscape(round(count_j,digits = 4)),
-                      #                  labelOptions = labelOptions(direction = 'bottom',noHide = T, textOnly = TRUE,textsize = "10px"))%>%
+                      addLegend(data=pal2%>%distinct(flag,.keep_all = T)%>%arrange(count_j)
+                                ,position="bottomright",color=~col2,labels=~flag,title = "10万人当たりの累積感染者数",opacity = 1,
+                                #labFormat = labelFormat(transform = function(x)x*x)
+                      )%>%
                       addControl(tags$div(HTML(paste(date,lubridate::ymd(input$x),sep = "~")))  , position = "topright")
-                    # leaflet(jinko3) %>% addTiles() %>%
-                    #     addProviderTiles(providers$CartoDB.Positron) %>%
-                    #     #setView(lng=139.4825,lat=35.4478,zoom=10)%>%
-                    #     fitBounds(lng1=139.124343, lat1=35.117843, lng2=139.652899, lat2=35.665052)%>%
-                    #     addCircleMarkers(~X, ~Y, stroke=FALSE,
-                    #                      radius =sqrt(jinko3$count_j)*10,
-                    #                      label = ~htmlEscape(居住市区町村及び管内),
-                    #                      labelOptions = labelOptions(direction = 'auto',noHide = T, textOnly = TRUE,textsize = "10px"))%>%
-                    #     addCircleMarkers(~X, ~Y, stroke=FALSE,
-                    #                      radius =sqrt(jinko3$count_j)*10,
-                    #                      label = ~htmlEscape(round(count_j,digits = 4)),
-                    #                      labelOptions = labelOptions(direction = 'bottom',noHide = T, textOnly = TRUE,textsize = "10px")
-                    #     )%>%addControl(tags$div(HTML(paste(date,lubridate::ymd(input$x),sep = "~")))  , position = "topright")
+                   
                     }
                 )
     }

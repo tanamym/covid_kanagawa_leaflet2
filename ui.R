@@ -83,8 +83,8 @@ shinyUI(fluidPage(
                      sliderInput("color",
                                  label = "色の調整",
                                  min = 10,
-                                 max = 500,
-                                 value = 200,)
+                                 max = 2000,
+                                 value = 1600,)
                      
                      ),
         
