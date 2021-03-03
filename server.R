@@ -202,7 +202,7 @@ shinyServer(function(input, output, session) {
     output$covid_map <- renderLeaflet({
         #ここ書き換える
         switch (input$button,
-                leaflet1 = { date<-lubridate::ymd(input$x)-input$y
+                leaflet1 = { date<-lubridate::ymd(input$x)-input$y+1
                 #集計
                 data7.1<-data7%>%
                     filter(確定日>=date,確定日<=lubridate::ymd(input$x))%>%
@@ -223,7 +223,8 @@ shinyServer(function(input, output, session) {
                          flag=ifelse(count>input$color,paste0(input$color,"~"),paste0(count%/%10*10,"~")))
                 data7.2%>%
                   leaflet() %>%
-                  fitBounds(lng1=139.124343, lat1=35.117843, lng2=139.652899, lat2=35.665052)%>% 
+                  #fitBounds(lng1=139.124343, lat1=35.117843, lng2=139.652899, lat2=35.665052)%>% 
+                  setView(lng=139.424343, lat=35.417843,zoom=9.5)%>%
                   addProviderTiles(providers$CartoDB.Positron) %>% 
                   addPolygons(fillOpacity = 1,
                               weight=1,
@@ -237,7 +238,7 @@ shinyServer(function(input, output, session) {
                   addControl(tags$div(HTML(paste(date,lubridate::ymd(input$x),sep = "~")))  , position = "topright")
                 },
                 leaflet2={
-                    date<-lubridate::ymd(input$x)-input$y
+                    date<-lubridate::ymd(input$x)-input$y+1
                     #集計
                     data7.1<-data7%>%
                         filter(確定日>=date,確定日<=lubridate::ymd(input$x))%>%
