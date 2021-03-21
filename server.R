@@ -60,57 +60,94 @@ if (!require(rgdal)) {
   install.packages("rgdal")
   
 }
-#webshot :: install_phantomjs()
+webshot :: install_phantomjs()
 
 
 
 # Define server logic required to draw a histogram
 shinyServer(function(input, output, session) {
     #コロナのデータ読み込み
-    #data<-fread("https://dl.dropboxusercontent.com/s/6mztoeb6xf78g5w/COVID-19.csv", encoding="UTF-8")
-    #修正済みデータの読み込み
-    data<-fread("kanagawa.csv", encoding="UTF-8") %>%
-      mutate(確定日= as.Date(確定日,format = "%m/%d/%Y"))
-    patient<-
-      read.csv("https://www.pref.kanagawa.jp/osirase/1369/data/csv/patient.csv") %>%
-      filter(!str_detect(居住地,"管内")) %>%
-      filter(発表日>="2020-12-01") %>%
-      rename("確定日"="発表日","居住市区町村"="居住地") %>%
-      mutate(年代 = str_replace(年代,"代","")) %>%
-      mutate(居住市区町村 = str_replace(居住市区町村,"神奈川県",""))
-    kanagawa<-read.csv("kanagawa2.csv") %>%
-      select(-X,-備考)#%>%
-      # filter(!居住市区町村%in%c("横浜市","横須賀市","相模原市","川崎市",
-      #                    "藤沢市"))
+  data<-
+    fread("kanagawa.csv", encoding="UTF-8") %>%
+    mutate(確定日= as.Date(確定日,format = "%m/%d/%Y"))%>%
+    select(確定日,受診都道府県,居住都道府県,居住市区町村,備考,X,Y)%>%
+    filter(居住都道府県=="神奈川県")%>%
+    filter(居住市区町村=="川崎市"|居住市区町村=="")%>%
+    mutate(Residential_City=paste0(居住市区町村,備考))%>%
+    select(-居住市区町村,-備考,-X,-Y)%>%
+    rename("Fixed_Date"="確定日",
+           "Hospital_Pref"="受診都道府県",
+           "Residential_Pref"="居住都道府県")%>%
+    filter(Residential_City!="")
+  data2<-fread("kanagawa.csv", encoding="UTF-8") %>%
+    mutate(確定日= as.Date(確定日,format = "%m/%d/%Y"))%>%
+    select(確定日,受診都道府県,居住都道府県,居住市区町村,備考,X,Y)%>%
+    filter(居住都道府県=="神奈川県")%>%
+    filter(居住市区町村!="川崎市",居住市区町村!="")%>%
+    rename("Residential_City"="居住市区町村")%>%
+    select(-備考)%>%
+    rename("Fixed_Date"="確定日",
+           "Hospital_Pref"="受診都道府県",
+           "Residential_Pref"="居住都道府県")
 
-    kanagawa2<-rbind(kanagawa,patient) %>%
-      mutate(受診都道府県 ="神奈川県",
-                   居住都道府県="神奈川県"
-                   )
-    
-    xy<-read.csv("xy.csv") %>%
-      select(-X.1)
-    chigasaki<-
-      read.csv("chigasaki.csv")%>%
-      mutate(受診都道府県 ="神奈川県",
-                   居住都道府県="神奈川県"
-      )%>%
-      mutate(確定日=as.Date(確定日))%>%
-      left_join(xy,by="居住市区町村")
-    kanagawa2<-
-      left_join(kanagawa2,xy,by="居住市区町村") %>%
-      mutate(確定日=as.Date(確定日))
-    kawasaki<-
-      read.csv("kawasaki.csv") %>%
-      select(-X,番号,番号2)%>%
-      mutate(確定日=as.Date(確定日))
-    
-    data<-bind_rows(data,kanagawa2,kawasaki,chigasaki)
+  
+  patient<-
+    read.csv("https://www.pref.kanagawa.jp/osirase/1369/data/csv/patient.csv") %>%
+    filter(!str_detect(居住地,"管内")) %>%
+    filter(発表日>="2020-12-01") %>%
+    rename("Fixed_Date"="発表日","Residential_City"="居住地") %>%
+    select(-年代,-性別)%>%
+    mutate(Residential_City = str_replace(Residential_City,"神奈川県",""))%>%
+    mutate(Fixed_Date=as.Date(Fixed_Date))
+  
+  kanagawa<-read.csv("kanagawa2.csv") %>%
+    select(-X,-note)%>%
+    mutate(Fixed_Date=as.Date(Fixed_Date))
+
+  kanagawa2<-rbind(kanagawa,patient) %>%
+    mutate(Hospital_Pref ="神奈川県",
+           Residential_Pref="神奈川県"
+    )
+  
+  xy<-read.csv("xy.csv") %>%
+    select(-X.1)%>%
+    rename("Residential_City"="居住市区町村")
+  chigasaki<-
+    read.csv("chigasaki.csv")%>%
+    mutate(Hospital_Pref ="神奈川県",
+           Residential_Pref="神奈川県"
+    )%>%
+    mutate(Fixed_Date=as.Date(Fixed_Date))%>%
+    left_join(xy,by="Residential_City")%>%
+    filter(!is.na(X))
+
+  list1<-read.csv("list.csv")
+  data3<-
+    data%>%
+    left_join(list1,by=c("Residential_City"="list"))%>%
+    select(-Residential_City)%>%
+    rename("Residential_City"="管内")%>%
+    filter(!is.na(X))
+
+  kanagawa2<-
+    left_join(kanagawa2,xy,by="Residential_City") %>%
+    mutate(Fixed_Date=as.Date(Fixed_Date))%>%
+    filter(!is.na(X))
+  
+  kawasaki<-
+    read.csv("kawasaki.csv") %>%
+    select(-X)%>%
+    mutate(Fixed_Date=as.Date(Fixed_Date))%>%
+    left_join(list1)%>%
+    select(-note,-管内,-Residential_City)%>%
+    rename("Residential_City"="list")
+
+  data7<-bind_rows(data2,data3,kanagawa2,kawasaki,chigasaki)
     date<-
       kawasaki%>%
       data.frame()%>%
-      arrange(desc(確定日))%>%
-      distinct(確定日)
+      arrange(desc(Fixed_Date))%>%
+      distinct(Fixed_Date)
     
     output$date<-
       renderUI({
@@ -119,70 +156,7 @@ shinyServer(function(input, output, session) {
                   max = date[1,1],
                   value = date[1,1])
       })
-    #data$確定日 <- lubridate::mdy(data$確定日)
-    data$発症日 <- lubridate::mdy(data$発症日)
-    data1<-data%>%
-        select(年代,性別,確定日,発症日,受診都道府県,
-                 居住都道府県,居住管内,居住市区町村,備考,X,Y)%>%
-        filter(居住都道府県=="神奈川県")
-
-
-    data2<-data%>%
-        select(年代,性別,確定日,発症日,受診都道府県,
-                 居住都道府県,居住市区町村,備考)%>%
-        filter(居住都道府県=="神奈川県")
-    list1<-read.csv("list.csv")
-    #無理やり結合させたいので
-    #川崎市備考NAあり
-    #居住市区町村NAの場合に結合
-    data3<-data2%>%
-        filter(居住市区町村=="")
-    list1$list<-as.character(list1$list)
-    data5.1<-inner_join(data3,list1,by=c("備考"="list"))
-    #川崎市はNAがあるため、埋まっている部分だけ結合
-    data4<-data2%>%
-        filter(居住市区町村=="川崎市",備考!="")
-    data5.2<-inner_join(data4,list1,by=c("備考"="list"))
-    #それ以外のデータ
-    #川崎市
-    data5.3<-data1%>%
-        filter(居住市区町村=="川崎市",備考=="")
-    #居住市区町村NAでの備考のリストに当てはまらない部分
-    data5.4<-data1%>%
-        filter(居住市区町村=="")%>%
-        anti_join(list1,by=c("備考"="list"))
-    #居住市区町村が川崎市以外で""ではない市区町村
-    data5.5<-data1%>%
-        filter(居住市区町村!=""&居住市区町村!="川崎市")
-    #川崎市NA
-    data5.6<-data1%>%
-      filter(居住市区町村=="川崎市",is.na(備考))
-    #data5.1~data5.5まで結合
    
-    data6<-bind_rows(data5.1,data5.2,data5.3,data5.4,data5.5,data5.6)
-    #居住市区町村と備考と管内を一つにまとめたい
-    #居住市区町村""
-    data6.1<-data6%>%
-        filter(居住市区町村=="")%>%
-        mutate(居住市区町村及び管内=管内)%>%
-        select(年代,性別,確定日,発症日,受診都道府県,
-                 居住都道府県,居住市区町村及び管内,X,Y)
-    #川崎市
-    data6.2<-data6%>%
-        filter(居住市区町村=="川崎市")%>%
-        tidyr::unite(col=居住市区町村及び管内,居住市区町村,管内,sep="",remove=T)%>%
-        select(年代,性別,確定日,発症日,受診都道府県,
-                 居住都道府県,居住市区町村及び管内,X,Y)
-    #川崎市以外で居住市区町村があるところ
-
-    data6.3<-data6%>%
-        filter(居住市区町村!="",居住市区町村!="川崎市")%>%
-        mutate(居住市区町村及び管内=居住市区町村)%>%
-        select(年代,性別,確定日,発症日,受診都道府県,
-                 居住都道府県,居住市区町村及び管内,X,Y)
-    data6.1$居住市区町村及び管内<-as.character(data6.1$居住市区町村及び管内)
-    #結合
-    data7<-dplyr::bind_rows(data6.1, data6.2,data6.3)
 
     jinko<-read.csv("jinko.csv")
     jinko<-data.frame(jinko)
@@ -205,11 +179,12 @@ shinyServer(function(input, output, session) {
                 leaflet1 = { date<-lubridate::ymd(input$x)-input$y+1
                 #集計
                 data7.1<-data7%>%
-                    filter(確定日>=date,確定日<=lubridate::ymd(input$x))%>%
-                    group_by(居住市区町村及び管内,X,Y)%>%
+                    filter(Fixed_Date>=date,
+                           Fixed_Date<=lubridate::ymd(input$x))%>%
+                    group_by(Residential_City,X,Y)%>%
                     summarise(count=n())%>%
                     filter(X>0,Y>0)%>%
-                    mutate(N03_004=居住市区町村及び管内)
+                    mutate(N03_004=Residential_City)
 
                 data7.2<-
                   sp::merge(shp, data7.1,
@@ -224,7 +199,7 @@ shinyServer(function(input, output, session) {
                 data7.2%>%
                   leaflet() %>%
                   #fitBounds(lng1=139.124343, lat1=35.117843, lng2=139.652899, lat2=35.665052)%>% 
-                  setView(lng=139.424343, lat=35.417843,zoom=9.5)%>%
+                  setView(lng=139.424343, lat=35.417843,zoom=10)%>%
                   addProviderTiles(providers$CartoDB.Positron) %>% 
                   addPolygons(fillOpacity = 1,
                               weight=1,
@@ -233,7 +208,7 @@ shinyServer(function(input, output, session) {
                               label = paste0(data7.2@data$N03_004,data7.2@data$count))%>%
                   addLegend(data=pal2%>%distinct(flag,.keep_all = T)%>%arrange(count)
                             ,position="bottomright",color=~col2,labels=~flag,title = "累積感染者数",opacity = 1,
-                            #labFormat = labelFormat(transform = function(x)x*x)
+                            labFormat = labelFormat(transform = function(x)x*x)
                             )%>%
                   addControl(tags$div(HTML(paste(date,lubridate::ymd(input$x),sep = "~")))  , position = "topright")
                 },
@@ -241,14 +216,14 @@ shinyServer(function(input, output, session) {
                     date<-lubridate::ymd(input$x)-input$y+1
                     #集計
                     data7.1<-data7%>%
-                        filter(確定日>=date,確定日<=lubridate::ymd(input$x))%>%
-                        group_by(居住市区町村及び管内,X,Y)%>%
+                        filter(Fixed_Date>=date,Fixed_Date<=lubridate::ymd(input$x))%>%
+                        group_by(Residential_City,X,Y)%>%
                         summarise(count=n())%>%
                         filter(X>0,Y>0)
-                    jinko2<-left_join(data7.1,jinko,by=c("居住市区町村及び管内"="市区町村"))
+                    jinko2<-left_join(data7.1,jinko,by=c("Residential_City"="City"))
                     jinko3<-jinko2%>%
-                        mutate(count_j=count/人口*100000)%>%
-                      mutate(N03_004=居住市区町村及び管内)
+                        mutate(count_j=count/jinko*100000)%>%
+                      mutate(N03_004=Residential_City)
                     
                     data7.2<-
                       sp::merge(shp, jinko3,

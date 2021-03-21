@@ -92,8 +92,7 @@ shinyUI(fluidPage(
         
         # Show a plot of the generated distribution
         mainPanel(h4("出力"),
-                  h5("地図への可視化"),
-            leafletOutput("covid_map",height = "600px"),
+            leafletOutput("covid_map",height = "500px"),
             
         )
     )
