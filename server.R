@@ -73,7 +73,7 @@ webshot :: install_phantomjs()
 shinyServer(function(input, output, session) {
     #コロナのデータ読み込み
   data7<-
-    read.csv("https://raw.githubusercontent.com/tanamym/covid19_colopressmap_isehara/main/coviddata.csv",fileEncoding = "SJIS")%>%
+    fread("https://raw.githubusercontent.com/tanamym/covid19_colopressmap_isehara/main/coviddata.csv",encoding = "UTF-8")%>%
     mutate(Fixed_Date=as.Date(Fixed_Date))%>%
     filter(!is.na(X))
   date<-
@@ -198,7 +198,7 @@ shinyServer(function(input, output, session) {
     #   mutate(N03_004=ifelse(N03_003=="川崎市",paste0(N03_003,N03_004),N03_004))
   shp<-
     read_sf("N03-190101_14_GML/N03-19_14_190101_2.shp",options = "ENCODING=CP932")
-  head(shp)
+
     output$covid_map <- renderLeaflet({
         #ここ書き換える
         switch (input$button,
