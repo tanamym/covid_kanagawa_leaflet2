@@ -96,7 +96,9 @@ shinyServer(function(input, output, session) {
                 mutate(hos="yokohama"))%>%
     mutate(Residential_City=ifelse(!is.na(City),City,Residential_City)) %>%
     mutate(n=ifelse(!is.na(City),count,n))%>%
-    arrange(Fixed_Date)
+    arrange(Fixed_Date)%>%
+    group_by(Fixed_Date,Residential_City,X,Y)%>%
+    summarise(n=sum(n))
   date <- 
     data.frame(Date=min(data7$Fixed_Date):max(data7$Fixed_Date)) %>%
     arrange(desc(Date)) %>%
@@ -133,7 +135,7 @@ shinyServer(function(input, output, session) {
                   filter(Fixed_Date>=date,
                            Fixed_Date<=lubridate::ymd(x))%>%
                   group_by(Residential_City,X,Y)%>%
-                  summarise(count=n())%>%
+                  summarise(count=sum(n))%>%
                   ungroup()%>%
                   filter(X>0,Y>0)%>%
                   full_join(xy,by=c("Residential_City"="City"))%>%
@@ -185,7 +187,7 @@ shinyServer(function(input, output, session) {
                     data7.1<-data7%>%
                         filter(Fixed_Date>=date,Fixed_Date<=lubridate::ymd(x))%>%
                         group_by(Residential_City,X,Y)%>%
-                        summarise(count=n())%>%
+                        summarise(count=sum(n))%>%
                         filter(X>0,Y>0)%>%
                       full_join(xy,by=c("Residential_City"="City"))%>%
                       mutate(count=ifelse(is.na(X),0,count))
