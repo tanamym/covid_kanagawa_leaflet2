@@ -80,15 +80,17 @@ shinyServer(function(input, output, session) {
   data202109 <-
     fread("https://raw.githubusercontent.com/tanamym/covid19_colopressmap_isehara/main/data202109.csv",encoding="UTF-8")
   
-  data2021 <-
-    fread("https://raw.githubusercontent.com/tanamym/covid19_colopressmap_isehara/main/data2021.csv",encoding="UTF-8")
+  data202201 <-
+    fread("https://raw.githubusercontent.com/tanamym/covid19_colopressmap_isehara/main/data202201.csv",encoding="UTF-8")
+  data2022 <-
+    fread("https://raw.githubusercontent.com/tanamym/covid19_colopressmap_isehara/main/data2022.csv",encoding="UTF-8")
   ycd <-
     fread("https://raw.githubusercontent.com/tanamym/covid19_colopressmap_isehara/main/yoko_covid.csv",encoding="UTF-8") %>%
     mutate(Fixed_Date=as.Date(Date),
            Residential_City=City)
   
   data7 <-
-    rbind(data2020,data202106,data202109,data2021) %>%
+    rbind(data2020,data202106,data202109,data202201,data2022) %>%
     mutate(Fixed_Date=as.Date(Fixed_Date)) %>%
     arrange(desc(Fixed_Date),Hos,hos)%>%
     count(Fixed_Date,Residential_City,hos,X,Y)%>%
